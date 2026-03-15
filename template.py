@@ -2,9 +2,88 @@ import sys
 from collections import Counter
 
 def train_BPE(file_name, init_vocab, max_merge_count=10, topK=1):
+    file = open(file_name, "r", encoding="utf-8")
+    text = file.read()
+    file.close()
+    text = text.split()
 
-    # TO DO
+    for i in range(len(text)):     # add _ to the beginning and end of each word
+        text[i] = "_" + text[i] + "_"
+        text[i] = list(text[i])     #convert each word to a list of characters
 
+    corpus = text.copy()
+    vocabulary = init_vocab[:]
+    merges =[]
+
+
+
+    for count in range(max_merge_count):
+
+        adjacent_dict ={}
+        for c in corpus:  # count adjacent pairs
+            for i in range(len(c)- 1):  # iterate through the word
+                adjacent_pair = (c[i], c[i+1]) 
+                if adjacent_pair in adjacent_dict:    # if the pair is already in the dictionary, increment its count
+                    adjacent_dict[(adjacent_pair)] = adjacent_dict[(adjacent_pair)] + 1
+                else:   # if the pair is not in the dictionary, add it with a count of 1
+                    adjacent_dict[adjacent_pair] = 1
+        
+        if not adjacent_dict:  # if there are no more adjacent pairs alghorithm stops
+            break
+        
+        
+        adjacent_dict = dict(sorted(adjacent_dict.items(), key=lambda x: (-x[1], len(x[0][0]+x[0][1]), x[0][0]+x[0][1]))) # sort the dictionary by frequency, length and alphabetical order
+        adjacent_dict_list = list(adjacent_dict.items()) # convert the dictionary to a list
+
+        adjacent_dict_topK = adjacent_dict_list[0:topK] # get the topK most frequent pairs
+
+        found = False # flag to check if the choosen word is found
+        choosen_word = ()
+        choosen_freq = 0
+        
+        for adj in adjacent_dict_topK: # check if the choosen word is found for ones with starts _
+            if adj[0][0].startswith("_"):
+                choosen_word = adj[0]
+                choosen_freq = adj[1]
+                found = True
+                break
+        
+        if found == False:  # check if the choosen word is found for ones with ends _
+            for adj in adjacent_dict_topK:
+                if adj[0][1].endswith("_"):
+                    choosen_word = adj[0]
+                    choosen_freq = adj[1]
+                    found = True
+                    break
+
+        if found == False:  # if the choosen word is not found for ones with starts _ and ends _
+            choosen_word = adjacent_dict_topK[0][0]
+            choosen_freq = adjacent_dict_topK[0][1]
+
+            
+        new_corpus = [] # create a new corpus
+        for c in corpus: # iterate through the corpus
+            new_word = [] # create a new word
+            i = 0
+            while i < len(c): # iterate through the word
+                if i < len(c) - 1 and (c[i], c[i+1]) == choosen_word: # if the pair is found
+                    new_word.append(c[i] + c[i+1])
+                    i += 2
+                else:
+                    new_word.append(c[i])
+                    i += 1
+            new_corpus.append(new_word)
+        corpus = new_corpus
+                    
+                    
+       
+                    
+        merges.append((*choosen_word, choosen_freq)) # add the choosen word to the merges list
+        print(merges)
+        vocabulary.append(choosen_word[0] + choosen_word[1]) # add the choosen word to the vocabulary list
+        
+
+        
     return merges, vocabulary
 
 
@@ -30,6 +109,8 @@ if __name__ == "__main__":
         ".,;:!?\"'()[]{}<>-_=/+*%<>^~@#$&|\\`"
     )
     init_vocab.sort()
+
+    train_BPE("train.txt", init_vocab)
 
     # ------------------------------------------------------------
     # You can use the following configurations to test your code:
